@@ -7,6 +7,7 @@
 #include <string.h>
 
 const char* vertShaderSrc = " \
+#version 130\n \
 attribute vec3 a_Position; \
 void main() { \
   gl_Position = vec4(a_Position, 1.0); \
@@ -14,6 +15,7 @@ void main() { \
 ";
 
 const char* fragShaderSrc = " \
+#version 130\n \
 precision mediump float; \
 uniform vec2 color; \
 void main() { \
