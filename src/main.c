@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 
-const char* vertShaderSrc = " \
+const char* vertShaderSrc = "\
 #version 130\n \
 attribute vec3 a_Position; \
 void main() { \
@@ -14,7 +14,7 @@ void main() { \
 } \
 ";
 
-const char* fragShaderSrc = " \
+const char* fragShaderSrc = "\
 #version 130\n \
 precision mediump float; \
 uniform vec2 color; \
@@ -168,7 +168,12 @@ int main() {
 
   printf("Version: %s\n", glGetString(GL_VERSION));
 
-  shader = makeShader(vertShaderSrc, fragShaderSrc);
+#ifdef __EMSCRIPTEN__
+  // TODO: HACK - cut out version definition for webgl shaders
+  shader = makeShader(vertShaderSrc+13, fragShaderSrc+13);
+#else
+  shader = makeShader(vertShaderSrc+0, fragShaderSrc+0);
+#endif
 
   glUseProgram(shader.program);
 
@@ -183,7 +188,7 @@ int main() {
 
 #ifdef __EMSCRIPTEN__
   // void emscripten_set_main_loop(em_callback_func func, int fps, int simulate_infinite_loop);
-  emscripten_set_main_loop(one_iter, 60, 1);
+  emscripten_set_main_loop(one_iter, 0, 1);
 #else
   while (isRunning) {
     one_iter();
