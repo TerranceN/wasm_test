@@ -52,7 +52,8 @@ gh-pages: wasm
 	cp $(BINARYDIR)/main.html ./index.html
 	cp $(BINARYDIR)/main.js ./
 	cp $(BINARYDIR)/main.wasm ./
-	git add -f index.html main.js main.wasm
+	cp $(BINARYDIR)/main.data ./
+	git add -f index.html main.js main.wasm main.data
 	git commit -m "Build gh-pages demo"
 	git push -f origin gh-pages
 

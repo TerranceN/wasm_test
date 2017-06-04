@@ -2,6 +2,7 @@
 *.bc
 *.html
 *.js
+*.data
 obj/
 wasm/
 bin/
