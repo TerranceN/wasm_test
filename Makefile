@@ -41,7 +41,7 @@ $(BUILDDIR)/%.o: $(SOURCEDIR)/%.c
 
 $(WASMBIN): $(WASMOBJ)
 	@mkdir -p $(BINARYDIR)
-	$(WASMCC) $(CFLAGS) $(WASMOBJ) -o $(WASMBIN) $(LDFLAGS) $(WASMFLAGS)
+	$(WASMCC) $(CFLAGS) $(WASMOBJ) -o $(WASMBIN) $(LDFLAGS) $(WASMFLAGS) --preload-files assets
 
 $(WASMDIR)/%.bc: $(SOURCEDIR)/%.c
 	@mkdir -p $(dir $@)

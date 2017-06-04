@@ -2,111 +2,22 @@
 #include <GL/gl.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_opengl.h>
+#include <stdlib.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include <string.h>
 
-const char* vertShaderSrc = "\
-#version 130\n \
-attribute vec3 a_Position; \
-void main() { \
-  gl_Position = vec4(a_Position, 1.0); \
-} \
-";
-
-const char* fragShaderSrc = "\
-#version 130\n \
-precision mediump float; \
-uniform vec2 color; \
-void main() { \
-  gl_FragColor = vec4(1.0, color, 1.0); \
-} \
-";
+#include "shader.h"
+#include "math/mat4.h"
 
 const float vertexBuf[] = {
-	-0.3f,  0.5f, -1.0f,
-	-0.8f, -0.5f, -1.0f,
-	 0.2f, -0.5f, -1.0f
+  -0.0f,  0.5f, -1.0f,
+  -0.5f, -0.5f, -1.0f,
+   0.5f, -0.5f, -1.0f
 
-	//1.0f,  0.0f,  0.0f,
-	//0.0f,  1.0f,  0.0f,
-	//0.0f,  0.0f,  1.0f
+  //1.0f,  0.0f,  0.0f,
+  //0.0f,  1.0f,  0.0f,
+  //0.0f,  0.0f,  1.0f
 };
-
-typedef struct {
-  int program;
-} Shader;
-
-int compileShaderSrc(GLuint type, const char* src) {
-  int shader = glCreateShader(type);
-  int strLen = strlen(src);
-  glShaderSource(shader, 1, &src, &strLen);
-  glCompileShader(shader);
-
-  GLint isCompiled = 0;
-  glGetShaderiv(shader, GL_COMPILE_STATUS, &isCompiled);
-  if(isCompiled == GL_FALSE) {
-    GLint maxLength = 0;
-    glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &maxLength);
-
-    //The maxLength includes the NULL character
-    char infoLog[maxLength];
-    glGetShaderInfoLog(shader, maxLength, &maxLength, &infoLog[0]);
-
-    printf("Failed to compile ");
-
-    if (type == GL_VERTEX_SHADER) {
-      printf("vertex");
-    } else if (type == GL_FRAGMENT_SHADER) {
-      printf("fragment");
-    }
-
-    printf(" shader: %s", infoLog);
-
-    //We don't need the shader anymore.
-    glDeleteShader(shader);
-    return -1;
-  }
-
-  return shader;
-}
-
-Shader makeShader(const char* vertSrc, const char* fragSrc) {
-  Shader shader;
-  shader.program = -1;
-  int vertexShader = compileShaderSrc(GL_VERTEX_SHADER, vertSrc);
-  int fragmentShader = compileShaderSrc(GL_FRAGMENT_SHADER, fragSrc);
-
-  // Link the two shaders into a program
-  if (vertexShader >= 0 && fragmentShader >= 0) {
-    int program;
-    program = glCreateProgram();
-    glAttachShader(program, vertexShader);
-    glAttachShader(program, fragmentShader);
-    glLinkProgram(program);
-
-    GLint isLinked = 0;
-    glGetProgramiv(program, GL_LINK_STATUS, (int *)&isLinked);
-    if(isLinked == GL_FALSE) {
-      GLint maxLength = 0;
-      glGetProgramiv(program, GL_INFO_LOG_LENGTH, &maxLength);
-
-      //The maxLength includes the NULL character
-      char infoLog[maxLength];
-      glGetProgramInfoLog(program, maxLength, &maxLength, &infoLog[0]);
-      
-      //We don't need the program anymore.
-      glDeleteProgram(program);
-      //Don't leak shaders either.
-      glDeleteShader(vertexShader);
-      glDeleteShader(fragmentShader);
-    } else {
-      shader.program = program;
-    }
-  }
-
-  return shader;
-}
 
 SDL_Window *window;
 Shader shader;
@@ -132,6 +43,12 @@ void one_iter() {
       SDL_MouseMotionEvent *mouseEvent = (SDL_MouseMotionEvent*)(&event);
       green = mouseEvent->x/640.0f;
       blue = mouseEvent->y/480.0f;
+
+      {
+        mat4 mat = mat4_translate(mouseEvent->x, 480 - mouseEvent->y, 0.0);
+        int modelMatrixLocation = glGetUniformLocation(shader.program, "u_ModelMatrix2");
+        glUniformMatrix4fv(modelMatrixLocation, 1, false, &mat.values[0]);
+      }
     }
   }
 
@@ -145,7 +62,7 @@ void one_iter() {
 }
 
 #ifdef __EMSCRIPTEN__
-emscripten_set_main_loop(void*, int, int);
+void emscripten_set_main_loop(void*, int, int);
 #endif
 
 int main() {
@@ -168,17 +85,30 @@ int main() {
 
   printf("Version: %s\n", glGetString(GL_VERSION));
 
-#ifdef __EMSCRIPTEN__
-  // TODO: HACK - cut out version definition for webgl shaders
-  shader = makeShader(vertShaderSrc+13, fragShaderSrc+13);
-#else
-  shader = makeShader(vertShaderSrc+0, fragShaderSrc+0);
-#endif
+  shader = loadShaderFromFile("assets/shaders/simple.shader");
 
   glUseProgram(shader.program);
 
+  {
+    mat4 mat = mat4_orthographic(0, 640, 480, 0, 0, 1);
+    mat4_print(&mat);
+    int modelMatrixLocation = glGetUniformLocation(shader.program, "u_ProjectionMatrix");
+    glUniformMatrix4fv(modelMatrixLocation, 1, false, &mat.values[0]);
+  }
+  {
+    mat4 mat = mat4_scale(100.0, 100.0, 1.0);
+    mat4_print(&mat);
+    int modelMatrixLocation = glGetUniformLocation(shader.program, "u_ModelMatrix");
+    glUniformMatrix4fv(modelMatrixLocation, 1, false, &mat.values[0]);
+  }
+  {
+    mat4 mat = mat4_identity();
+    int modelMatrixLocation2 = glGetUniformLocation(shader.program, "u_ModelMatrix2");
+    glUniformMatrix4fv(modelMatrixLocation2, 1, false, &mat.values[0]);
+  }
+
   int buffer;
-  glGenBuffers(1, &buffer);
+  glGenBuffers(1, (GLuint*)(&buffer));
   glBindBuffer(GL_ARRAY_BUFFER, buffer);
   glBufferData(GL_ARRAY_BUFFER, 9*sizeof(float), vertexBuf, GL_STATIC_DRAW);
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
@@ -192,7 +122,7 @@ int main() {
 #else
   while (isRunning) {
     one_iter();
-    SDL_Delay(33);
+    SDL_Delay(17);
   }
 #endif
 
