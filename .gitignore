@@ -1,4 +1,7 @@
 *.wasm
+*.bc
 *.html
 *.js
-main
+obj/
+wasm/
+bin/

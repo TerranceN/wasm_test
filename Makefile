@@ -1,11 +1,51 @@
-build:
-	gcc -O3 -o main main.c -lSDL2 -lGL -lGLEW
+BINARYDIR := bin
+BINARY := $(BINARYDIR)/main
+WASMBIN := $(BINARYDIR)/main.html
+CC := gcc
+WASMCC := emcc
+CFLAGS := -O3
+LDFLAGS := -lSDL2 -lGL -lGLEW
+WASMFLAGS := -s WASM=1 -s USE_SDL=2
+
+SOURCEDIR := src
+BUILDDIR := obj
+WASMDIR := wasm
+
+SOURCES := $(shell find $(SOURCEDIR) -name '*.c' | cut -d '/' -f2-)
+
+# Get list of object files, with paths
+OBJECTS := $(addprefix $(BUILDDIR)/,$(SOURCES:%.c=%.o))
+WASMOBJ := $(addprefix $(WASMDIR)/,$(SOURCES:%.c=%.bc))
+
+build: $(BINARY)
+
+wasm: $(WASMBIN)
 
 run: build
-	./main
+	$(BINARY)
 
-wasm:
-	emcc main.c -o main.html -s WASM=1 -s USE_SDL=2
+all: build wasm
+
+clean:
+	-rm -rf $(BUILDDIR)
+	-rm -rf $(WASMDIR)
+	-rm -f $(BINARY)
+
+$(BINARY): $(OBJECTS)
+	@mkdir -p $(BINARYDIR)
+	$(CC) $(CFLAGS) $(OBJECTS) -o $(BINARY) $(LDFLAGS) 
+
+$(BUILDDIR)/%.o: $(SOURCEDIR)/%.c
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(WASMBIN): $(WASMOBJ)
+	@mkdir -p $(BINARYDIR)
+	$(WASMCC) $(CFLAGS) $(WASMOBJ) -o $(WASMBIN) $(LDFLAGS) $(WASMFLAGS)
+
+$(WASMDIR)/%.bc: $(SOURCEDIR)/%.c
+	@mkdir -p $(dir $@)
+	$(WASMCC) $(CFLAGS) -c $< -o $@ $(WASMFLAGS)
 
 server:
 	python -c 'import SimpleHTTPServer; SimpleHTTPServer.test()'

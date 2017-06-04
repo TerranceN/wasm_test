@@ -14,8 +14,10 @@ void main() { \
 ";
 
 const char* fragShaderSrc = " \
+precision mediump float; \
+uniform vec2 color; \
 void main() { \
-  gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0); \
+  gl_FragColor = vec4(1.0, color, 1.0); \
 } \
 ";
 
@@ -108,6 +110,10 @@ SDL_Window *window;
 Shader shader;
 bool isRunning = true;
 
+int colorPos = -1;
+float green = 0.0f;
+float blue = 0.0f;
+
 void one_iter() {
   SDL_Event event;
   while (SDL_PollEvent(&event)){
@@ -119,11 +125,18 @@ void one_iter() {
     if (event.type == SDL_KEYDOWN){
       isRunning = false;
     }
+
+    if (event.type == SDL_MOUSEMOTION) {
+      SDL_MouseMotionEvent *mouseEvent = (SDL_MouseMotionEvent*)(&event);
+      green = mouseEvent->x/640.0f;
+      blue = mouseEvent->y/480.0f;
+    }
   }
 
   glClear(GL_COLOR_BUFFER_BIT);
 
   glUseProgram(shader.program);
+  glUniform2f(colorPos, green, blue);
   glDrawArrays(GL_TRIANGLES, 0, 3);
 
   SDL_GL_SwapWindow(window);
@@ -163,6 +176,8 @@ int main() {
   glBufferData(GL_ARRAY_BUFFER, 9*sizeof(float), vertexBuf, GL_STATIC_DRAW);
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
   glEnableVertexAttribArray(0);
+
+  colorPos = glGetUniformLocation(shader.program, "color");
 
 #ifdef __EMSCRIPTEN__
   // void emscripten_set_main_loop(em_callback_func func, int fps, int simulate_infinite_loop);
