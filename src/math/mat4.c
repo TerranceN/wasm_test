@@ -42,10 +42,28 @@ mat4 mat4_orthographic(float left, float right, float top, float bottom, float n
   return mat;
 }
 
+void mat4_multiply_ptr(mat4 *dst, mat4 *m1, mat4 *m2) {
+  for (int j = 0; j < 4; j++) { // y-index
+    for (int i = 0; i < 4; i++) { // x-index
+      float total = 0;
+      for (int k = 0; k < 4; k++) {
+        total += m1->values[k*4+j] * m2->values[i*4+k];
+      }
+      dst->values[i*4+j] = total;
+    }
+  }
+}
+
+mat4 mat4_multiply(mat4 *m1, mat4 *m2) {
+  mat4 mat;
+  mat4_multiply_ptr(&mat, m1, m2);
+  return mat;
+}
+
 void mat4_print(mat4 *mat) {
   printf("[\t");
-  for (int j = 0; j < 4; j++) {
-    for (int i = 0; i < 4; i++) {
+  for (int j = 0; j < 4; j++) { // y-index
+    for (int i = 0; i < 4; i++) { // x-index
       printf("%f\t", mat->values[i*4+j]);
     }
     printf("\n");

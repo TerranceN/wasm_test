@@ -5,11 +5,10 @@ vertex_shader {
 
   uniform mat4 u_ProjectionMatrix;
   uniform mat4 u_ModelMatrix;
-  uniform mat4 u_ModelMatrix2;
 
   void main() {
     v_xPos = a_Position.x + 0.8;
-    gl_Position = u_ProjectionMatrix * u_ModelMatrix2 * u_ModelMatrix * vec4(a_Position, 1.0);
+    gl_Position = u_ProjectionMatrix * u_ModelMatrix * vec4(a_Position, 1.0);
   }
 }
 

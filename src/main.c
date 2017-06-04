@@ -23,6 +23,8 @@ SDL_Window *window;
 Shader shader;
 bool isRunning = true;
 
+mat4 triangleModelMatrix;
+
 int colorPos = -1;
 float green = 0.0f;
 float blue = 0.0f;
@@ -45,8 +47,9 @@ void one_iter() {
       blue = mouseEvent->y/480.0f;
 
       {
-        mat4 mat = mat4_translate(mouseEvent->x, 480 - mouseEvent->y, 0.0);
-        int modelMatrixLocation = glGetUniformLocation(shader.program, "u_ModelMatrix2");
+        mat4 translate = mat4_translate(mouseEvent->x, 480 - mouseEvent->y, 0.0);
+        mat4 mat = mat4_multiply(&translate, &triangleModelMatrix);
+        int modelMatrixLocation = glGetUniformLocation(shader.program, "u_ModelMatrix");
         glUniformMatrix4fv(modelMatrixLocation, 1, false, &mat.values[0]);
       }
     }
@@ -96,15 +99,9 @@ int main() {
     glUniformMatrix4fv(modelMatrixLocation, 1, false, &mat.values[0]);
   }
   {
-    mat4 mat = mat4_scale(100.0, 100.0, 1.0);
-    mat4_print(&mat);
+    triangleModelMatrix = mat4_scale(100.0, 100.0, 1.0);
     int modelMatrixLocation = glGetUniformLocation(shader.program, "u_ModelMatrix");
-    glUniformMatrix4fv(modelMatrixLocation, 1, false, &mat.values[0]);
-  }
-  {
-    mat4 mat = mat4_identity();
-    int modelMatrixLocation2 = glGetUniformLocation(shader.program, "u_ModelMatrix2");
-    glUniformMatrix4fv(modelMatrixLocation2, 1, false, &mat.values[0]);
+    glUniformMatrix4fv(modelMatrixLocation, 1, false, &triangleModelMatrix.values[0]);
   }
 
   int buffer;
