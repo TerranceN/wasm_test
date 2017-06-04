@@ -47,5 +47,14 @@ $(WASMDIR)/%.bc: $(SOURCEDIR)/%.c
 	@mkdir -p $(dir $@)
 	$(WASMCC) $(CFLAGS) -c $< -o $@ $(WASMFLAGS)
 
+gh-pages: wasm
+	git reset --hard HEAD^
+	cp $(BINARYDIR)/main.html ./index.html
+	cp $(BINARYDIR)/main.js ./
+	cp $(BINARYDIR)/main.wasm ./
+	git add -f index.html main.js main.wasm
+	git commit -m "Build gh-pages demo"
+	git push -f origin gh-pages
+
 server:
 	python -c 'import SimpleHTTPServer; SimpleHTTPServer.test()'
