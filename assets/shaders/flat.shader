@@ -1,3 +1,4 @@
+varying vec3 v_fragCoord;
 varying vec3 v_viewCoord;
 
 vertex_shader {
@@ -11,6 +12,7 @@ vertex_shader {
     vec4 fragCoord = u_modelMatrix * vec4(a_position, 1.0);
     vec4 viewCoord = u_viewMatrix * fragCoord;
 
+    v_fragCoord = fragCoord.xyz;
     v_viewCoord = viewCoord.xyz;
 
     gl_Position = u_projectionMatrix * viewCoord;
@@ -23,8 +25,8 @@ fragment_shader {
   void main() {
     vec3 diffuse = u_color;
 
-    vec3 X = dFdx(v_viewCoord);
-    vec3 Y = dFdy(v_viewCoord);
+    vec3 X = dFdx(v_fragCoord);
+    vec3 Y = dFdy(v_fragCoord);
     vec3 normal=normalize(cross(X,Y));
     float intensity = max(0.2, dot(-normalize(v_viewCoord), normalize(normal)));
 
