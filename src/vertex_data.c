@@ -10,7 +10,7 @@ const float triangleVertexBufTmp[] = {
 const float *triangleVertexBuf = &triangleVertexBufTmp[0];
 const int triangleBufElems = numElems(triangleVertexBufTmp);
 
-#define chmf 0.45f
+#define chmf 0.42f
 
 const float cubeVertexBufTmp[] = {
   // Back
