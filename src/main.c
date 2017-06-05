@@ -84,6 +84,7 @@ int cubeVAO;
 
 SDL_Window *window;
 Shader shader;
+Shader flatShader;
 bool isRunning = true;
 
 float triangleX;
@@ -134,6 +135,12 @@ void one_iter() {
       }
 
     }
+  }
+  glUseProgram(flatShader.program);
+  {
+    int modelMatrixLocation = glGetUniformLocation(flatShader.program, "u_ModelMatrix");
+    int projectionMatrixLocation = glGetUniformLocation(flatShader.program, "u_ProjectionMatrix");
+
     {
       mat4 rot;
       rot = mat4_rotateY(0.03);
@@ -184,6 +191,7 @@ int main() {
   printf("Version: %s\n", glGetString(GL_VERSION));
 
   shader = loadShaderFromFile("assets/shaders/simple.shader");
+  flatShader = loadShaderFromFile("assets/shaders/flat.shader");
 
   glUseProgram(shader.program);
 

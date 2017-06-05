@@ -96,8 +96,10 @@ void loadShaderFile(const char* fileName, char** vert, char** frag) {
   char* fragp = *frag;
 
 #ifdef __EMSCRIPTEN__
-  sprintf(fragp, "precision mediump float;\n");
-  fragp += 25;
+  sprintf(fragp, "precision highp float;\n");
+  fragp += 23;
+  sprintf(fragp, "#extension GL_OES_standard_derivatives : enable\n");
+  fragp += 48;
 #else
   sprintf(vertp, "#version 130\n");
   sprintf(fragp, "#version 130\n");
@@ -112,7 +114,7 @@ void loadShaderFile(const char* fileName, char** vert, char** frag) {
        presence would allow to handle lines longer that sizeof(line) */
     int len = strlen(line);
 
-    if (line[0] == '}') {
+    if (line[0] == '}' && section > 0) {
       if (section == 1) {
         *vertp = '\0';
       } else if (section == 2) {
