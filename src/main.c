@@ -9,6 +9,8 @@
 #include "shader.h"
 #include "math/mat4.h"
 
+#define PI 3.14159
+
 #define numElems(array) (sizeof(array) == 0 ? 0 : sizeof(array) / sizeof(array[0]));
 
 const float triangleVertexBuf[] = {
@@ -22,228 +24,230 @@ const float triangleVertexBuf[] = {
 };
 const int triangleBufElems = numElems(triangleVertexBuf);
 
+#define chmf 0.45f
+
 const float cubeVertexBuf[] = {
   // Back
-   0.4f,  0.4f, -0.5f,
-   0.4f, -0.4f, -0.5f,
-  -0.4f,  0.4f, -0.5f,
+   chmf,  chmf, -0.5f,
+   chmf, -chmf, -0.5f,
+  -chmf,  chmf, -0.5f,
 
-  -0.4f,  0.4f, -0.5f,
-   0.4f, -0.4f, -0.5f,
-  -0.4f, -0.4f, -0.5f,
+  -chmf,  chmf, -0.5f,
+   chmf, -chmf, -0.5f,
+  -chmf, -chmf, -0.5f,
 
   // Front
-   0.4f,  0.4f,  0.5f,
-  -0.4f,  0.4f,  0.5f,
-  -0.4f, -0.4f,  0.5f,
+   chmf,  chmf,  0.5f,
+  -chmf,  chmf,  0.5f,
+  -chmf, -chmf,  0.5f,
 
-  -0.4f, -0.4f,  0.5f,
-   0.4f, -0.4f,  0.5f,
-   0.4f,  0.4f,  0.5f,
+  -chmf, -chmf,  0.5f,
+   chmf, -chmf,  0.5f,
+   chmf,  chmf,  0.5f,
 
   // Right
-   0.5f,  0.4f,  0.4f,
-   0.5f, -0.4f,  0.4f,
-   0.5f, -0.4f, -0.4f,
+   0.5f,  chmf,  chmf,
+   0.5f, -chmf,  chmf,
+   0.5f, -chmf, -chmf,
 
-   0.5f, -0.4f, -0.4f,
-   0.5f,  0.4f, -0.4f,
-   0.5f,  0.4f,  0.4f,
+   0.5f, -chmf, -chmf,
+   0.5f,  chmf, -chmf,
+   0.5f,  chmf,  chmf,
 
   // Left
-  -0.5f, -0.4f, -0.4f,
-  -0.5f, -0.4f,  0.4f,
-  -0.5f,  0.4f,  0.4f,
+  -0.5f, -chmf, -chmf,
+  -0.5f, -chmf,  chmf,
+  -0.5f,  chmf,  chmf,
 
-  -0.5f,  0.4f,  0.4f,
-  -0.5f,  0.4f, -0.4f,
-  -0.5f, -0.4f, -0.4f,
+  -0.5f,  chmf,  chmf,
+  -0.5f,  chmf, -chmf,
+  -0.5f, -chmf, -chmf,
 
   // Top
-   0.4f,  0.5f,  0.4f,
-   0.4f,  0.5f, -0.4f,
-  -0.4f,  0.5f,  0.4f,
+   chmf,  0.5f,  chmf,
+   chmf,  0.5f, -chmf,
+  -chmf,  0.5f,  chmf,
 
-  -0.4f,  0.5f,  0.4f,
-   0.4f,  0.5f, -0.4f,
-  -0.4f,  0.5f, -0.4f,
+  -chmf,  0.5f,  chmf,
+   chmf,  0.5f, -chmf,
+  -chmf,  0.5f, -chmf,
 
   // Bottom
-  -0.4f, -0.5f,  0.4f,
-   0.4f, -0.5f, -0.4f,
-   0.4f, -0.5f,  0.4f,
+  -chmf, -0.5f,  chmf,
+   chmf, -0.5f, -chmf,
+   chmf, -0.5f,  chmf,
 
-  -0.4f, -0.5f, -0.4f,
-   0.4f, -0.5f, -0.4f,
-  -0.4f, -0.5f,  0.4f,
+  -chmf, -0.5f, -chmf,
+   chmf, -0.5f, -chmf,
+  -chmf, -0.5f,  chmf,
 
   // Front-Top connector
 
-  -0.4f,  0.5f,  0.4f,
-  -0.4f,  0.4f,  0.5f,
-   0.4f,  0.5f,  0.4f,
+  -chmf,  0.5f,  chmf,
+  -chmf,  chmf,  0.5f,
+   chmf,  0.5f,  chmf,
 
-   0.4f,  0.5f,  0.4f,
-  -0.4f,  0.4f,  0.5f,
-   0.4f,  0.4f,  0.5f,
+   chmf,  0.5f,  chmf,
+  -chmf,  chmf,  0.5f,
+   chmf,  chmf,  0.5f,
 
   // Front-Bottom connector
 
-   0.4f, -0.5f,  0.4f,
-  -0.4f, -0.4f,  0.5f,
-  -0.4f, -0.5f,  0.4f,
+   chmf, -0.5f,  chmf,
+  -chmf, -chmf,  0.5f,
+  -chmf, -0.5f,  chmf,
 
-   0.4f, -0.4f,  0.5f,
-  -0.4f, -0.4f,  0.5f,
-   0.4f, -0.5f,  0.4f,
+   chmf, -chmf,  0.5f,
+  -chmf, -chmf,  0.5f,
+   chmf, -0.5f,  chmf,
 
   // Front-Left connector
 
-  -0.5f,  0.4f,  0.4f,
-  -0.5f, -0.4f,  0.4f,
-  -0.4f, -0.4f,  0.5f,
+  -0.5f,  chmf,  chmf,
+  -0.5f, -chmf,  chmf,
+  -chmf, -chmf,  0.5f,
 
-  -0.4f, -0.4f,  0.5f,
-  -0.4f,  0.4f,  0.5f,
-  -0.5f,  0.4f,  0.4f,
+  -chmf, -chmf,  0.5f,
+  -chmf,  chmf,  0.5f,
+  -0.5f,  chmf,  chmf,
 
   // Front-Right connector
 
-   0.4f, -0.4f,  0.5f,
-   0.5f, -0.4f,  0.4f,
-   0.5f,  0.4f,  0.4f,
+   chmf, -chmf,  0.5f,
+   0.5f, -chmf,  chmf,
+   0.5f,  chmf,  chmf,
 
-   0.5f,  0.4f,  0.4f,
-   0.4f,  0.4f,  0.5f,
-   0.4f, -0.4f,  0.5f,
+   0.5f,  chmf,  chmf,
+   chmf,  chmf,  0.5f,
+   chmf, -chmf,  0.5f,
 
   // Back-Top connector
 
-   0.4f,  0.5f, -0.4f,
-  -0.4f,  0.4f, -0.5f,
-  -0.4f,  0.5f, -0.4f,
+   chmf,  0.5f, -chmf,
+  -chmf,  chmf, -0.5f,
+  -chmf,  0.5f, -chmf,
 
-   0.4f,  0.4f, -0.5f,
-  -0.4f,  0.4f, -0.5f,
-   0.4f,  0.5f, -0.4f,
+   chmf,  chmf, -0.5f,
+  -chmf,  chmf, -0.5f,
+   chmf,  0.5f, -chmf,
 
   // Back-Bottom connector
 
-  -0.4f, -0.5f, -0.4f,
-  -0.4f, -0.4f, -0.5f,
-   0.4f, -0.5f, -0.4f,
+  -chmf, -0.5f, -chmf,
+  -chmf, -chmf, -0.5f,
+   chmf, -0.5f, -chmf,
 
-   0.4f, -0.5f, -0.4f,
-  -0.4f, -0.4f, -0.5f,
-   0.4f, -0.4f, -0.5f,
+   chmf, -0.5f, -chmf,
+  -chmf, -chmf, -0.5f,
+   chmf, -chmf, -0.5f,
 
   // Back-Left connector
 
-  -0.4f, -0.4f, -0.5f,
-  -0.5f, -0.4f, -0.4f,
-  -0.5f,  0.4f, -0.4f,
+  -chmf, -chmf, -0.5f,
+  -0.5f, -chmf, -chmf,
+  -0.5f,  chmf, -chmf,
 
-  -0.5f,  0.4f, -0.4f,
-  -0.4f,  0.4f, -0.5f,
-  -0.4f, -0.4f, -0.5f,
+  -0.5f,  chmf, -chmf,
+  -chmf,  chmf, -0.5f,
+  -chmf, -chmf, -0.5f,
 
   // Back-Right connector
 
-   0.5f,  0.4f, -0.4f,
-   0.5f, -0.4f, -0.4f,
-   0.4f, -0.4f, -0.5f,
+   0.5f,  chmf, -chmf,
+   0.5f, -chmf, -chmf,
+   chmf, -chmf, -0.5f,
 
-   0.4f, -0.4f, -0.5f,
-   0.4f,  0.4f, -0.5f,
-   0.5f,  0.4f, -0.4f,
+   chmf, -chmf, -0.5f,
+   chmf,  chmf, -0.5f,
+   0.5f,  chmf, -chmf,
 
    // Left-Top connector
 
-  -0.4f,  0.5f, -0.4f,
-  -0.5f,  0.4f, -0.4f,
-  -0.5f,  0.4f,  0.4f,
+  -chmf,  0.5f, -chmf,
+  -0.5f,  chmf, -chmf,
+  -0.5f,  chmf,  chmf,
 
-  -0.5f,  0.4f,  0.4f,
-  -0.4f,  0.5f,  0.4f,
-  -0.4f,  0.5f, -0.4f,
+  -0.5f,  chmf,  chmf,
+  -chmf,  0.5f,  chmf,
+  -chmf,  0.5f, -chmf,
 
    // Left-Bottom connector
 
-  -0.5f, -0.4f,  0.4f,
-  -0.5f, -0.4f, -0.4f,
-  -0.4f, -0.5f, -0.4f,
+  -0.5f, -chmf,  chmf,
+  -0.5f, -chmf, -chmf,
+  -chmf, -0.5f, -chmf,
 
-  -0.4f, -0.5f, -0.4f,
-  -0.4f, -0.5f,  0.4f,
-  -0.5f, -0.4f,  0.4f,
+  -chmf, -0.5f, -chmf,
+  -chmf, -0.5f,  chmf,
+  -0.5f, -chmf,  chmf,
 
    // Right-Top connector
 
-   0.5f,  0.4f,  0.4f,
-   0.5f,  0.4f, -0.4f,
-   0.4f,  0.5f, -0.4f,
+   0.5f,  chmf,  chmf,
+   0.5f,  chmf, -chmf,
+   chmf,  0.5f, -chmf,
 
-   0.4f,  0.5f, -0.4f,
-   0.4f,  0.5f,  0.4f,
-   0.5f,  0.4f,  0.4f,
+   chmf,  0.5f, -chmf,
+   chmf,  0.5f,  chmf,
+   0.5f,  chmf,  chmf,
 
    // Right-Bottom connector
 
-   0.4f, -0.5f, -0.4f,
-   0.5f, -0.4f, -0.4f,
-   0.5f, -0.4f,  0.4f,
+   chmf, -0.5f, -chmf,
+   0.5f, -chmf, -chmf,
+   0.5f, -chmf,  chmf,
 
-   0.5f, -0.4f,  0.4f,
-   0.4f, -0.5f,  0.4f,
-   0.4f, -0.5f, -0.4f,
+   0.5f, -chmf,  chmf,
+   chmf, -0.5f,  chmf,
+   chmf, -0.5f, -chmf,
 
    // Front-Top-Left corner
 
-  -0.4f,  0.5f,  0.4f,
-  -0.5f,  0.4f,  0.4f,
-  -0.4f,  0.4f,  0.5f,
+  -chmf,  0.5f,  chmf,
+  -0.5f,  chmf,  chmf,
+  -chmf,  chmf,  0.5f,
 
    // Front-Top-Right corner
 
-   0.4f,  0.4f,  0.5f,
-   0.5f,  0.4f,  0.4f,
-   0.4f,  0.5f,  0.4f,
+   chmf,  chmf,  0.5f,
+   0.5f,  chmf,  chmf,
+   chmf,  0.5f,  chmf,
 
    // Front-Bottom-Left corner
 
-  -0.4f, -0.4f,  0.5f,
-  -0.5f, -0.4f,  0.4f,
-  -0.4f, -0.5f,  0.4f,
+  -chmf, -chmf,  0.5f,
+  -0.5f, -chmf,  chmf,
+  -chmf, -0.5f,  chmf,
 
    // Front-Bottom-Right corner
 
-   0.4f, -0.5f,  0.4f,
-   0.5f, -0.4f,  0.4f,
-   0.4f, -0.4f,  0.5f,
+   chmf, -0.5f,  chmf,
+   0.5f, -chmf,  chmf,
+   chmf, -chmf,  0.5f,
 
    // Back-Top-Left corner
 
-  -0.4f,  0.4f, -0.5f,
-  -0.5f,  0.4f, -0.4f,
-  -0.4f,  0.5f, -0.4f,
+  -chmf,  chmf, -0.5f,
+  -0.5f,  chmf, -chmf,
+  -chmf,  0.5f, -chmf,
 
    // Back-Top-Right corner
 
-   0.4f,  0.5f, -0.4f,
-   0.5f,  0.4f, -0.4f,
-   0.4f,  0.4f, -0.5f,
+   chmf,  0.5f, -chmf,
+   0.5f,  chmf, -chmf,
+   chmf,  chmf, -0.5f,
 
    // Back-Bottom-Left corner
 
-  -0.4f, -0.5f, -0.4f,
-  -0.5f, -0.4f, -0.4f,
-  -0.4f, -0.4f, -0.5f,
+  -chmf, -0.5f, -chmf,
+  -0.5f, -chmf, -chmf,
+  -chmf, -chmf, -0.5f,
 
    // Back-Bottom-Right corner
 
-   0.4f, -0.4f, -0.5f,
-   0.5f, -0.4f, -0.4f,
-   0.4f, -0.5f, -0.4f,
+   chmf, -chmf, -0.5f,
+   0.5f, -chmf, -chmf,
+   chmf, -0.5f, -chmf,
 };
 const int cubeBufElems = numElems(cubeVertexBuf);
 
@@ -257,14 +261,35 @@ bool isRunning = true;
 
 float triangleX;
 float triangleY;
-float triangleScale = 100;
+float triangleScale = 50;
 
 mat4 cubeModelMatrix;
 
 float tetronimo[] = {
+  0, 0, 0, 0,
+  1, 1, 1, 0,
+  1, 0, 0, 0,
+  0, 0, 0, 0,
+};
+
+float tetronimo2[] = {
   0, 1, 0, 0,
   0, 1, 0, 0,
-  0, 1, 1, 0,
+  0, 1, 0, 0,
+  0, 1, 0, 0,
+};
+
+float tetronimo3[] = {
+  0, 1, 0, 0,
+  1, 1, 1, 0,
+  0, 0, 0, 0,
+  0, 0, 0, 0,
+};
+
+float tetronimo4[] = {
+  0, 1, 0, 0,
+  1, 1, 0, 0,
+  1, 0, 0, 0,
   0, 0, 0, 0,
 };
 
@@ -284,8 +309,17 @@ void one_iter() {
       }
 
       if (keyEvent->type == SDL_KEYDOWN && keyEvent->keysym.sym == SDLK_r) {
-        mat4_transpose_in_place((mat4*)tetronimo);
-        mat4_flip_horiz_in_place((mat4*)tetronimo);
+        mat4_transposen_in_place((mat4*)tetronimo, 3);
+        mat4_flip_horizn_in_place((mat4*)tetronimo, 3);
+
+        mat4_transposen_in_place((mat4*)tetronimo2, 4);
+        mat4_flip_horizn_in_place((mat4*)tetronimo2, 4);
+
+        mat4_transposen_in_place((mat4*)tetronimo3, 3);
+        mat4_flip_horizn_in_place((mat4*)tetronimo3, 3);
+
+        mat4_transposen_in_place((mat4*)tetronimo4, 3);
+        mat4_flip_horizn_in_place((mat4*)tetronimo4, 3);
       }
     }
 
@@ -299,6 +333,61 @@ void one_iter() {
 
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+  glUseProgram(flatShader.program);
+  {
+    int modelMatrixLocation = glGetUniformLocation(flatShader.program, "u_modelMatrix");
+    int viewMatrixLocation = glGetUniformLocation(flatShader.program, "u_viewMatrix");
+    int projectionMatrixLocation = glGetUniformLocation(flatShader.program, "u_projectionMatrix");
+
+    {
+      mat4 mat = mat4_translate(0, -1.5, -8);
+      glUniformMatrix4fv(viewMatrixLocation, 1, false, &mat.values[0]);
+    }
+
+    {
+      mat4 rot;
+      //rot = mat4_rotateY(0.03);
+      //cubeModelMatrix = mat4_multiply(&cubeModelMatrix, &rot);
+      //rot = mat4_rotateX(0.01);
+      //cubeModelMatrix = mat4_multiply(&cubeModelMatrix, &rot);
+      //rot = mat4_rotateZ(0.02);
+      //cubeModelMatrix = mat4_multiply(&cubeModelMatrix, &rot);
+      mat4 persp = mat4_perspective(PI/180 * 70, 640.0/480.0, 0.1, 100.0);
+      glUniformMatrix4fv(projectionMatrixLocation, 1, false, &persp.values[0]);
+      {
+        int square = 4;
+        glBindVertexArray(cubeVAO);
+        for (int j = 0; j < 4; j++) {
+          float xOffset = 3;
+          float yOffset = -3;
+          float* tet = tetronimo;
+          if (j % 2 == 0) {
+            xOffset = -xOffset;
+          }
+          if (j / 2 == 0) {
+            yOffset = -yOffset;
+          }
+          if (j == 1) {
+            tet = tetronimo2;
+          }
+          if (j == 2) {
+            tet = tetronimo3;
+          }
+          if (j == 3) {
+            tet = tetronimo4;
+          }
+          for (int i = 0; i < square*square; i++) {
+            if (tet[i] == 0) continue;
+            mat4 translate = mat4_translate((i/square)-(square/2)+0.5+xOffset, (square-(i%square))-(square/2)+0.5+yOffset, 0);
+            mat4 mat = mat4_multiply(&cubeModelMatrix, &translate);
+            glUniformMatrix4fv(modelMatrixLocation, 1, false, &mat.values[0]);
+
+            glDrawArrays(GL_TRIANGLES, 0, cubeBufElems/3);
+          }
+        }
+      }
+    }
+  }
   glUseProgram(shader.program);
   {
     int modelMatrixLocation = glGetUniformLocation(shader.program, "u_modelMatrix");
@@ -320,41 +409,6 @@ void one_iter() {
 
     }
   }
-  glUseProgram(flatShader.program);
-  {
-    int modelMatrixLocation = glGetUniformLocation(flatShader.program, "u_modelMatrix");
-    int viewMatrixLocation = glGetUniformLocation(flatShader.program, "u_viewMatrix");
-    int projectionMatrixLocation = glGetUniformLocation(flatShader.program, "u_projectionMatrix");
-
-    {
-      mat4 mat = mat4_translate(0, 0, -6);
-      glUniformMatrix4fv(viewMatrixLocation, 1, false, &mat.values[0]);
-    }
-
-    {
-      mat4 rot;
-      rot = mat4_rotateY(0.03);
-      cubeModelMatrix = mat4_multiply(&cubeModelMatrix, &rot);
-      //rot = mat4_rotateX(0.01);
-      //cubeModelMatrix = mat4_multiply(&cubeModelMatrix, &rot);
-      //rot = mat4_rotateZ(0.02);
-      //cubeModelMatrix = mat4_multiply(&cubeModelMatrix, &rot);
-      mat4 persp = mat4_perspective(80, 640.0/480.0, 0.1, 100.0);
-      glUniformMatrix4fv(projectionMatrixLocation, 1, false, &persp.values[0]);
-      {
-        int square = 4;
-        glBindVertexArray(cubeVAO);
-        for (int i = 0; i < square*square; i++) {
-          if (tetronimo[i] == 0) continue;
-          mat4 translate = mat4_translate((i%square)-(square/2)+0.5, (i/square)-(square/2)+0.5, 0);
-          mat4 mat = mat4_multiply(&cubeModelMatrix, &translate);
-          glUniformMatrix4fv(modelMatrixLocation, 1, false, &mat.values[0]);
-
-          glDrawArrays(GL_TRIANGLES, 0, cubeBufElems/3);
-        }
-      }
-    }
-  }
 
   SDL_GL_SwapWindow(window);
 }
@@ -364,6 +418,11 @@ void emscripten_set_main_loop(void*, int, int);
 #endif
 
 int main() {
+  mat4_transpose_in_place((mat4*)tetronimo);
+  mat4_transpose_in_place((mat4*)tetronimo2);
+  mat4_transpose_in_place((mat4*)tetronimo3);
+  mat4_transpose_in_place((mat4*)tetronimo4);
+
   if (SDL_Init(SDL_INIT_VIDEO) != 0){
     return 1;
   }
@@ -379,6 +438,7 @@ int main() {
   glewInit();
 
   glEnable(GL_DEPTH_TEST);
+
   glEnable(GL_CULL_FACE);
   glCullFace(GL_BACK);
 

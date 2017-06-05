@@ -15,6 +15,9 @@ mat4 mat4_rotateZ(float angle);
 mat4 mat4_orthographic(float left, float right, float top, float bottom, float near, float far);
 mat4 mat4_perspective(float fovy, float aspect, float near, float far);
 
+void mat4_transposen_in_place(mat4 *mat, int n);
+void mat4_flip_horizn_in_place(mat4 *mat, int n);
+
 void mat4_transpose_in_place(mat4 *mat);
 void mat4_flip_horiz_in_place(mat4 *mat);
 
