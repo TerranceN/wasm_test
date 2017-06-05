@@ -17,9 +17,9 @@ mat4 mat4_perspective(float fovy, float aspect, float near, float far);
 
 void mat4_transposen_in_place(mat4 *mat, int n);
 void mat4_flip_horizn_in_place(mat4 *mat, int n);
+void mat4_flip_vertn_in_place(mat4 *mat, int n);
 
 void mat4_transpose_in_place(mat4 *mat);
-void mat4_flip_horiz_in_place(mat4 *mat);
 
 void mat4_multiply_ptr(mat4 *dst, mat4 *m1, mat4 *m2);
 mat4 mat4_multiply(mat4 *m1, mat4 *m2);

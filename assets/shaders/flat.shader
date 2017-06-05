@@ -18,8 +18,10 @@ vertex_shader {
 }
 
 fragment_shader {
+  uniform vec3 u_color;
+
   void main() {
-    vec3 diffuse = vec3(0.8);
+    vec3 diffuse = u_color;
 
     vec3 X = dFdx(v_viewCoord);
     vec3 Y = dFdy(v_viewCoord);

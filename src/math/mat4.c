@@ -112,27 +112,20 @@ void mat4_flip_horizn_in_place(mat4 *mat, int n) {
   }
 }
 
-void mat4_transpose_in_place(mat4 *mat) {
+void mat4_flip_vertn_in_place(mat4 *mat, int n) {
   float tmp;
-  for (int j = 0; j < 4; j++) { // y-index
-    for (int i = 0; i < j; i++) { // x-index
+  for (int j = 0; j < n/2; j++) { // y-index
+    int k = ((n-1)-j);
+    for (int i = 0; i < n; i++) { // x-index
       tmp = mat->values[i*4+j];
-      mat->values[i*4+j] = mat->values[j*4+i];
-      mat->values[j*4+i] = tmp;
+      mat->values[i*4+j] = mat->values[i*4+k];
+      mat->values[i*4+k] = tmp;
     }
   }
 }
 
-void mat4_flip_horiz_in_place(mat4 *mat) {
-  float tmp;
-  for (int j = 0; j < 4; j++) { // y-index
-    for (int i = 0; i < 2; i++) { // x-index
-      int k = (3-i);
-      tmp = mat->values[i*4+j];
-      mat->values[i*4+j] = mat->values[k*4+j];
-      mat->values[k*4+j] = tmp;
-    }
-  }
+void mat4_transpose_in_place(mat4 *mat) {
+  mat4_transposen_in_place(mat, 4);
 }
 
 void mat4_multiply_ptr(mat4 *dst, mat4 *m1, mat4 *m2) {
