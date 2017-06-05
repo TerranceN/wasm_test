@@ -4,7 +4,7 @@ WASMBIN := $(BINARYDIR)/main.html
 CC := gcc
 WASMCC := emcc
 CFLAGS := -O3
-LDFLAGS := -lSDL2 -lGL -lGLEW
+LDFLAGS := -lSDL2 -lGL -lGLEW -lm
 WASMFLAGS := -s WASM=1 -s USE_SDL=2
 
 SOURCEDIR := src

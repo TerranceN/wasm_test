@@ -1,6 +1,7 @@
 #include "mat4.h"
 
 #include <stdio.h>
+#include <math.h>
 
 mat4 mat4_identity() {
   mat4 mat;
@@ -28,6 +29,39 @@ mat4 mat4_scale(float x, float y, float z) {
   return mat;
 }
 
+mat4 mat4_rotateX(float angle) {
+  mat4 mat = mat4_identity();
+  float c = cos(angle);
+  float s = sin(angle);
+  mat.values[5] = c;
+  mat.values[6] = s;
+  mat.values[9] = -s;
+  mat.values[10] = c;
+  return mat;
+}
+
+mat4 mat4_rotateY(float angle) {
+  mat4 mat = mat4_identity();
+  float c = cos(angle);
+  float s = sin(angle);
+  mat.values[0] = c;
+  mat.values[2] = -s;
+  mat.values[8] = s;
+  mat.values[10] = c;
+  return mat;
+}
+
+mat4 mat4_rotateZ(float angle) {
+  mat4 mat = mat4_identity();
+  float c = cos(angle);
+  float s = sin(angle);
+  mat.values[0] = c;
+  mat.values[1] = s;
+  mat.values[4] = -s;
+  mat.values[5] = c;
+  return mat;
+}
+
 mat4 mat4_orthographic(float left, float right, float top, float bottom, float near, float far) {
   mat4 mat = mat4_identity();
   float xDiff = right - left;
@@ -39,6 +73,19 @@ mat4 mat4_orthographic(float left, float right, float top, float bottom, float n
   mat.values[12] = -(right + left)/xDiff;
   mat.values[13] = -(top + bottom)/yDiff;
   mat.values[14] = -(far + near)/zDiff;
+  return mat;
+}
+
+mat4 mat4_perspective(float fovy, float aspect, float near, float far) {
+  mat4 mat = mat4_identity();
+  float f = 1.0/tan(fovy/2);
+  float zDiff = near - far;
+  mat.values[0] = f/aspect;
+  mat.values[5] = f;
+  mat.values[10] = (far+near)/zDiff;
+  mat.values[11] = -1;
+  mat.values[14] = (2*far*near)/zDiff;
+  mat.values[15] = 0;
   return mat;
 }
 
