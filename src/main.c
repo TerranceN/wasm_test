@@ -285,8 +285,8 @@ void one_iter() {
 
   glUseProgram(shader.program);
   {
-    int modelMatrixLocation = glGetUniformLocation(shader.program, "u_ModelMatrix");
-    int projectionMatrixLocation = glGetUniformLocation(shader.program, "u_ProjectionMatrix");
+    int modelMatrixLocation = glGetUniformLocation(shader.program, "u_modelMatrix");
+    int projectionMatrixLocation = glGetUniformLocation(shader.program, "u_projectionMatrix");
 
     {
       mat4 ortho = mat4_orthographic(0, 640, 480, 0, 0, 1);
@@ -306,8 +306,14 @@ void one_iter() {
   }
   glUseProgram(flatShader.program);
   {
-    int modelMatrixLocation = glGetUniformLocation(flatShader.program, "u_ModelMatrix");
-    int projectionMatrixLocation = glGetUniformLocation(flatShader.program, "u_ProjectionMatrix");
+    int modelMatrixLocation = glGetUniformLocation(flatShader.program, "u_modelMatrix");
+    int viewMatrixLocation = glGetUniformLocation(flatShader.program, "u_viewMatrix");
+    int projectionMatrixLocation = glGetUniformLocation(flatShader.program, "u_projectionMatrix");
+
+    {
+      mat4 mat = mat4_translate(0, 0, -2);
+      glUniformMatrix4fv(viewMatrixLocation, 1, false, &mat.values[0]);
+    }
 
     {
       mat4 rot;
@@ -365,7 +371,7 @@ int main() {
 
   {
     mat4 scale = mat4_scale(1.0, 1.0, 1.0);
-    mat4 translate = mat4_translate(0, 0, -2.5);
+    mat4 translate = mat4_translate(0, 0, 0);
     cubeModelMatrix = mat4_multiply(&translate, &scale);
   }
 

@@ -3,16 +3,16 @@ varying float v_yPos;
 varying float v_zPos;
 
 vertex_shader {
-  attribute vec3 a_Position;
+  attribute vec3 a_position;
 
-  uniform mat4 u_ProjectionMatrix;
-  uniform mat4 u_ModelMatrix;
+  uniform mat4 u_modelMatrix;
+  uniform mat4 u_projectionMatrix;
 
   void main() {
-    v_xPos = a_Position.x + 0.5;
-    v_yPos = a_Position.y + 0.5;
-    v_zPos = a_Position.z + 0.5;
-    gl_Position = u_ProjectionMatrix * u_ModelMatrix * vec4(a_Position, 1.0);
+    v_xPos = a_position.x + 0.5;
+    v_yPos = a_position.y + 0.5;
+    v_zPos = a_position.z + 0.5;
+    gl_Position = u_projectionMatrix * u_modelMatrix * vec4(a_position, 1.0);
   }
 }
 
