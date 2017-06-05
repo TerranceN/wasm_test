@@ -9,6 +9,8 @@
 #include "shader.h"
 #include "math/mat4.h"
 
+#define numElems(array) (sizeof(array) == 0 ? 0 : sizeof(array) / sizeof(array[0]));
+
 const float triangleVertexBuf[] = {
   -0.0f,  0.5f, -1.0f,
   -0.5f, -0.5f, -1.0f,
@@ -18,6 +20,7 @@ const float triangleVertexBuf[] = {
   //0.0f,  1.0f,  0.0f,
   //0.0f,  0.0f,  1.0f
 };
+const int triangleBufElems = numElems(triangleVertexBuf);
 
 const float cubeVertexBuf[] = {
   // Back
@@ -74,6 +77,7 @@ const float cubeVertexBuf[] = {
    0.5f, -0.5f, -0.5f,
   -0.5f, -0.5f,  0.5f,
 };
+const int cubeBufElems = numElems(cubeVertexBuf);
 
 int triangleVAO;
 int cubeVAO;
@@ -126,7 +130,7 @@ void one_iter() {
         glUniformMatrix4fv(modelMatrixLocation, 1, false, &mat.values[0]);
 
         glBindVertexArray(triangleVAO);
-        glDrawArrays(GL_TRIANGLES, 0, 3);
+        glDrawArrays(GL_TRIANGLES, 0, triangleBufElems/3);
       }
 
     }
@@ -144,7 +148,7 @@ void one_iter() {
         glUniformMatrix4fv(modelMatrixLocation, 1, false, &cubeModelMatrix.values[0]);
 
         glBindVertexArray(cubeVAO);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
+        glDrawArrays(GL_TRIANGLES, 0, cubeBufElems/3);
       }
     }
   }
@@ -195,7 +199,7 @@ int main() {
     glBindVertexArray(triangleVAO);
     glGenBuffers(1, (GLuint*)(&buffer));
     glBindBuffer(GL_ARRAY_BUFFER, buffer);
-    glBufferData(GL_ARRAY_BUFFER, 9*sizeof(float), triangleVertexBuf, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, triangleBufElems*sizeof(float), triangleVertexBuf, GL_STATIC_DRAW);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
     glEnableVertexAttribArray(0);
   }
@@ -206,7 +210,7 @@ int main() {
     glBindVertexArray(cubeVAO);
     glGenBuffers(1, (GLuint*)(&buffer));
     glBindBuffer(GL_ARRAY_BUFFER, buffer);
-    glBufferData(GL_ARRAY_BUFFER, 108*sizeof(float), cubeVertexBuf, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, cubeBufElems*sizeof(float), cubeVertexBuf, GL_STATIC_DRAW);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
     glEnableVertexAttribArray(0);
   }
