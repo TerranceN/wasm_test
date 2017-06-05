@@ -89,6 +89,29 @@ mat4 mat4_perspective(float fovy, float aspect, float near, float far) {
   return mat;
 }
 
+void mat4_transpose_in_place(mat4 *mat) {
+  float tmp;
+  for (int j = 0; j < 4; j++) { // y-index
+    for (int i = 0; i < j; i++) { // x-index
+      tmp = mat->values[i*4+j];
+      mat->values[i*4+j] = mat->values[j*4+i];
+      mat->values[j*4+i] = tmp;
+    }
+  }
+}
+
+void mat4_flip_horiz_in_place(mat4 *mat) {
+  float tmp;
+  for (int j = 0; j < 4; j++) { // y-index
+    for (int i = 0; i < 2; i++) { // x-index
+      int k = (3-i);
+      tmp = mat->values[i*4+j];
+      mat->values[i*4+j] = mat->values[k*4+j];
+      mat->values[k*4+j] = tmp;
+    }
+  }
+}
+
 void mat4_multiply_ptr(mat4 *dst, mat4 *m1, mat4 *m2) {
   for (int j = 0; j < 4; j++) { // y-index
     for (int i = 0; i < 4; i++) { // x-index

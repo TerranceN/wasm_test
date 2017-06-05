@@ -259,7 +259,14 @@ float triangleX;
 float triangleY;
 float triangleScale = 100;
 
-mat4 cubeModelMatrix;;
+mat4 cubeModelMatrix;
+
+float tetronimo[] = {
+  0, 1, 0, 0,
+  0, 1, 0, 0,
+  0, 1, 1, 0,
+  0, 0, 0, 0,
+};
 
 void one_iter() {
   SDL_Event event;
@@ -270,7 +277,16 @@ void one_iter() {
     }
     //If user presses any key
     if (event.type == SDL_KEYDOWN){
-      isRunning = false;
+      SDL_KeyboardEvent *keyEvent = (SDL_KeyboardEvent*)(&event);
+
+      if (keyEvent->type == SDL_KEYDOWN && keyEvent->keysym.sym == SDLK_ESCAPE) {
+        isRunning = false;
+      }
+
+      if (keyEvent->type == SDL_KEYDOWN && keyEvent->keysym.sym == SDLK_r) {
+        mat4_transpose_in_place((mat4*)tetronimo);
+        mat4_flip_horiz_in_place((mat4*)tetronimo);
+      }
     }
 
     if (event.type == SDL_MOUSEMOTION) {
@@ -311,7 +327,7 @@ void one_iter() {
     int projectionMatrixLocation = glGetUniformLocation(flatShader.program, "u_projectionMatrix");
 
     {
-      mat4 mat = mat4_translate(0, 0, -2);
+      mat4 mat = mat4_translate(0, 0, -6);
       glUniformMatrix4fv(viewMatrixLocation, 1, false, &mat.values[0]);
     }
 
@@ -319,17 +335,23 @@ void one_iter() {
       mat4 rot;
       rot = mat4_rotateY(0.03);
       cubeModelMatrix = mat4_multiply(&cubeModelMatrix, &rot);
-      rot = mat4_rotateX(0.01);
-      cubeModelMatrix = mat4_multiply(&cubeModelMatrix, &rot);
-      rot = mat4_rotateZ(0.02);
-      cubeModelMatrix = mat4_multiply(&cubeModelMatrix, &rot);
-      mat4 persp = mat4_perspective(90, 640.0/480.0, 0.1, 100.0);
+      //rot = mat4_rotateX(0.01);
+      //cubeModelMatrix = mat4_multiply(&cubeModelMatrix, &rot);
+      //rot = mat4_rotateZ(0.02);
+      //cubeModelMatrix = mat4_multiply(&cubeModelMatrix, &rot);
+      mat4 persp = mat4_perspective(80, 640.0/480.0, 0.1, 100.0);
       glUniformMatrix4fv(projectionMatrixLocation, 1, false, &persp.values[0]);
       {
-        glUniformMatrix4fv(modelMatrixLocation, 1, false, &cubeModelMatrix.values[0]);
-
+        int square = 4;
         glBindVertexArray(cubeVAO);
-        glDrawArrays(GL_TRIANGLES, 0, cubeBufElems/3);
+        for (int i = 0; i < square*square; i++) {
+          if (tetronimo[i] == 0) continue;
+          mat4 translate = mat4_translate((i%square)-(square/2)+0.5, (i/square)-(square/2)+0.5, 0);
+          mat4 mat = mat4_multiply(&cubeModelMatrix, &translate);
+          glUniformMatrix4fv(modelMatrixLocation, 1, false, &mat.values[0]);
+
+          glDrawArrays(GL_TRIANGLES, 0, cubeBufElems/3);
+        }
       }
     }
   }
