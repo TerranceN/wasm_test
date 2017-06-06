@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <memory.h>
+#include <time.h>
 
 #include "shader.h"
 #include "math/mat4.h"
@@ -135,6 +136,8 @@ typedef struct {
 
 Color *board[200]; // 20x10
 Color *showBoard[200]; // 20x10
+float boardSpacing[20];
+float boardVel[20];
 
 TetronimoRep activeTet;
 TetronimoRep ghostTet;
@@ -208,14 +211,49 @@ void place_tet_on_board(TetronimoRep *tet, Color** board) {
   }
 }
 
+void clear_board_line(Color** board, int line) {
+  // Move board down
+  memmove(&board[line*10], &board[(line+1)*10], (19-line)*10*sizeof(Color*));
+  // Clear top row
+  for (int j = 0; j < 10; j++) {
+    board[19*10+j] = NULL;
+  }
+}
+
+bool check_line_completed(Color** board, int line) {
+  for (int j = 0; j < 10; j++) {
+    if (board[line*10+j] == NULL) {
+      return false;
+    }
+  }
+  return true;
+}
+
+void clear_completed_board_lines(Color** board, TetronimoRep *tet) {
+  int offset = 0;
+  for (int i = 0; i < tet->size; i++) {
+    int line = tet->y+i-offset;
+    if (line >= 0 && line < 20) {
+      if (check_line_completed(board, line)) {
+        offset += 1;
+        clear_board_line(board, line);
+        if (board == showBoard) {
+          boardSpacing[line] += 1.0;
+        }
+      }
+    }
+  }
+}
+
 void place_tet(TetronimoRep* tet, int startingY) {
   place_tet_on_board(&placingTet, showBoard);
+  clear_completed_board_lines(showBoard, &placingTet);
   place_tet_on_board(tet, board);
   placingTet = *tet;
   memcpy(placingTet.tetronimo, tet->tetronimo, 16*sizeof(float));
 }
 
-bool check_board_collision(TetronimoRep *tet) {
+bool check_board_collision(Color** board, TetronimoRep *tet) {
   for (int i = 0; i < 4; i++) {
     for (int j = 0; j < tet->size; j++) {
       int tetIndex = i*4+(tet->size-1-j);
@@ -241,7 +279,7 @@ void update_ghost_tet() {
   bool placed = false;
   while (!placed) {
     ghostTet.y -= 1;
-    if (check_board_collision(&ghostTet)) {
+    if (check_board_collision(showBoard, &ghostTet)) {
       ghostTet.y += 1;
       ghostTet.actualX = ghostTet.x;
       ghostTet.actualY = ghostTet.y;
@@ -249,6 +287,33 @@ void update_ghost_tet() {
       placed = true;
     }
   }
+}
+
+void reset_game() {
+  for (int i = 0; i < 200; i++) {
+    board[i] = NULL;
+    showBoard[i] = NULL;
+  }
+
+  for (int i = 0; i < 20; i++) {
+    boardSpacing[i] = 0;
+    boardVel[i] = 0;
+  }
+
+  load_random_tetronimo(&activeTet);
+  activeTet.angle = 0;
+  activeTet.targetAngle = 0;
+  activeTet.x = 5 - activeTet.size/2;
+  activeTet.y = 22 - activeTet.size;
+  activeTet.actualX = activeTet.x;
+  activeTet.actualY = activeTet.y;
+
+  placingTet = activeTet;
+  placingTet.x = 9999;
+  placingTet.y = 9999;
+  placingTet.actualX = placingTet.x;
+  placingTet.actualY = placingTet.y;
+  update_ghost_tet();
 }
 
 void one_iter() {
@@ -268,7 +333,7 @@ void one_iter() {
 
       if (keyEvent->type == SDL_KEYDOWN && keyEvent->keysym.sym == SDLK_UP) {
         rotate_tet_rep(&activeTet);
-        if (check_board_collision(&activeTet)) {
+        if (check_board_collision(board, &activeTet)) {
           rotate_tet_rep(&activeTet);
           rotate_tet_rep(&activeTet);
           rotate_tet_rep(&activeTet);
@@ -282,29 +347,34 @@ void one_iter() {
         int startingY = activeTet.y;
         while (!placed) {
           activeTet.y -= 1;
-          if (check_board_collision(&activeTet)) {
+          if (check_board_collision(board, &activeTet)) {
             activeTet.y += 1;
             place_tet(&activeTet, startingY);
+            clear_completed_board_lines(board, &activeTet);
             load_random_tetronimo(&activeTet);
             activeTet.x = 5-activeTet.size/2;
             activeTet.y = 22-activeTet.size;
             activeTet.actualX = activeTet.x;
             activeTet.actualY = activeTet.y;
             placed = true;
+            // If we're colliding by default, reset the game
+            if (check_board_collision(board, &activeTet)) {
+              reset_game();
+            }
           }
         }
       }
 
       if (keyEvent->type == SDL_KEYDOWN && keyEvent->keysym.sym == SDLK_LEFT) {
         activeTet.x -= 1;
-        if (check_board_collision(&activeTet)) {
+        if (check_board_collision(board, &activeTet)) {
           activeTet.x += 1;
         }
       }
 
       if (keyEvent->type == SDL_KEYDOWN && keyEvent->keysym.sym == SDLK_RIGHT) {
         activeTet.x += 1;
-        if (check_board_collision(&activeTet)) {
+        if (check_board_collision(board, &activeTet)) {
           activeTet.x -= 1;
         }
       }
@@ -341,47 +411,21 @@ void one_iter() {
     {
       glBindVertexArray(cubeVAO);
 
-      {
-        update_tet(&activeTet);
-
-        glUniform3f(colorLocation, activeTet.color->r, activeTet.color->g, activeTet.color->b);
-        draw_tet_rep(&activeTet, modelMatrixLocation);
-      }
-
-      {
-        update_tet(&placingTet);
-
-        glUniform3f(colorLocation, placingTet.color->r, placingTet.color->g, placingTet.color->b);
-        draw_tet_rep(&placingTet, modelMatrixLocation);
-      }
-
-      {
-        if (ghostTet.y != activeTet.y) {
-          glUniform3f(colorLocation, 0.35, 0.35, 0.35);
-          draw_tet_rep(&ghostTet, modelMatrixLocation);
-        }
-      }
-
-      {
+      { // Draw background grid
         for (int i = 0; i < 20; i++) {
           for (int j = 0; j < 10; j++) {
-            if (showBoard[i*10+j]) {
-              Color *color = showBoard[i*10+j];
-              glUniform3f(colorLocation, color->r, color->g, color->b);
-            } else {
-              glUniform3f(colorLocation, 0.2, 0.2, 0.2);
-              if (j >= activeTet.x && j < activeTet.x+activeTet.size) {
-                bool isActive = false;
-                for (int k = 0; k < activeTet.size; k++) {
-                  int col = j-activeTet.x;
-                  if (activeTet.tetronimo[col*4+(activeTet.size-1-k)]) {
-                    isActive = true;
-                    break;
-                  }
+            glUniform3f(colorLocation, 0.2, 0.2, 0.2);
+            if (j >= activeTet.x && j < activeTet.x+activeTet.size) {
+              bool isActive = false;
+              for (int k = 0; k < activeTet.size; k++) {
+                int col = j-activeTet.x;
+                if (activeTet.tetronimo[col*4+(activeTet.size-1-k)]) {
+                  isActive = true;
+                  break;
                 }
-                if (isActive) {
-                  glUniform3f(colorLocation, 0.25, 0.25, 0.25);
-                }
+              }
+              if (isActive) {
+                glUniform3f(colorLocation, 0.25, 0.25, 0.25);
               }
             }
             mat4 mat = mat4_translate(j, i, 0);
@@ -390,6 +434,65 @@ void one_iter() {
           }
         }
       }
+
+      // Clear the depth buffer so the background doesn't occlude anything in the foreground
+      glClear(GL_DEPTH_BUFFER_BIT);
+
+      { // Draw game board
+        float offset = 0;
+        for (int i = 0; i < 20; i++) {
+          if (boardSpacing[i] > 0) {
+            offset += boardSpacing[i];
+            boardVel[i] -= 0.02;
+            float oldBoardSpacing = boardSpacing[i];
+            boardSpacing[i] = constrainAbs(boardSpacing[i]+boardVel[i], 0.0, 999);
+          } else {
+            boardVel[i] = 0;
+          }
+          for (int j = 0; j < 10; j++) {
+            if (showBoard[i*10+j]) {
+              Color *color = showBoard[i*10+j];
+              glUniform3f(colorLocation, color->r, color->g, color->b);
+              mat4 mat = mat4_translate(j, i+offset, 0);
+              glUniformMatrix4fv(modelMatrixLocation, 1, false, &mat.values[0]);
+              glDrawArrays(GL_TRIANGLES, 0, cubeBufElems/3);
+            }
+          }
+        }
+      }
+
+      {
+        update_tet(&activeTet);
+
+        glUniform3f(colorLocation, activeTet.color->r, activeTet.color->g, activeTet.color->b);
+        draw_tet_rep(&activeTet, modelMatrixLocation);
+      }
+
+      {
+        float oldY = placingTet.actualY;
+        update_tet(&placingTet);
+
+        glUniform3f(colorLocation, placingTet.color->r, placingTet.color->g, placingTet.color->b);
+        draw_tet_rep(&placingTet, modelMatrixLocation);
+
+        if (placingTet.actualY == oldY) { // finished placing, add to show board
+          place_tet_on_board(&placingTet, showBoard);
+          clear_completed_board_lines(showBoard, &placingTet);
+          placingTet.x = 9999;
+          placingTet.y = 9999;
+          placingTet.actualX = placingTet.x;
+          placingTet.actualY = placingTet.y;
+          update_ghost_tet();
+        }
+      }
+
+      {
+        if (ghostTet.y != activeTet.y) {
+          glUniform3f(colorLocation, 0.35, 0.35, 0.35);
+          //draw_tet_rep(&ghostTet, modelMatrixLocation);
+        }
+      }
+
     }
   }
   glUseProgram(shader.program);
@@ -422,28 +525,13 @@ void emscripten_set_main_loop(void*, int, int);
 #endif
 
 int main() {
+  srand(time(NULL));
+
   for (int i = 0; i < 7; i++) {
     mat4_transpose_in_place((mat4*)tetronimos[i]);
   }
 
-  for (int i = 0; i < 200; i++) {
-    board[i] = NULL;
-  }
-
-  load_random_tetronimo(&activeTet);
-  activeTet.angle = 0;
-  activeTet.targetAngle = 0;
-  activeTet.x = 5 - activeTet.size/2;
-  activeTet.y = 22 - activeTet.size;
-  activeTet.actualX = activeTet.x;
-  activeTet.actualY = activeTet.y;
-
-  placingTet = activeTet;
-  placingTet.x = 9999;
-  placingTet.y = 9999;
-  placingTet.actualX = placingTet.x;
-  placingTet.actualY = placingTet.y;
-  update_ghost_tet();
+  reset_game();
 
   if (SDL_Init(SDL_INIT_VIDEO) != 0){
     return 1;
