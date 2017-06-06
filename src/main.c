@@ -148,6 +148,31 @@ TetronimoRep tet_rep2;
 TetronimoRep tet_rep3;
 TetronimoRep tet_rep4;
 
+typedef struct {
+  float x;
+  float y;
+  float z;
+} vec3;
+
+typedef struct {
+  mat4 transforms;
+  vec3 vel;
+  Color *color;
+} FallingBlock;
+
+#define NUM_FALLING_BLOCKS 100
+FallingBlock fallingBlocks[NUM_FALLING_BLOCKS];
+int fallingBlocksStart = 0;
+
+void set_falling_block(int x, int y, Color* color) {
+  fallingBlocks[fallingBlocksStart].transforms = mat4_translate(x, y, 0);
+  fallingBlocks[fallingBlocksStart].vel.x = 0;
+  fallingBlocks[fallingBlocksStart].vel.y = 0.1;
+  fallingBlocks[fallingBlocksStart].vel.z = 0.075 + 0.02 * (rand() % 10);
+  fallingBlocks[fallingBlocksStart].color = color;
+  fallingBlocksStart = (fallingBlocksStart+1) % NUM_FALLING_BLOCKS;
+}
+
 void load_random_tetronimo(TetronimoRep *tet) {
   int i = rand() % 7;
   memcpy(tet->tetronimo, tetronimos[i], 16*sizeof(float));
@@ -235,6 +260,11 @@ void clear_completed_board_lines(Color** board, TetronimoRep *tet) {
     int line = tet->y+i-offset;
     if (line >= 0 && line < 20) {
       if (check_line_completed(board, line)) {
+        if (board == showBoard) {
+          for (int j = 0; j < 10; j++) {
+            set_falling_block(j, tet->y+i, showBoard[line*10+j]);
+          }
+        }
         offset += 1;
         clear_board_line(board, line);
         if (board == showBoard) {
@@ -469,20 +499,22 @@ void one_iter() {
       }
 
       {
-        float oldY = placingTet.actualY;
-        update_tet(&placingTet);
+        if (placingTet.x < 10) {
+          float oldY = placingTet.actualY;
+          update_tet(&placingTet);
 
-        glUniform3f(colorLocation, placingTet.color->r, placingTet.color->g, placingTet.color->b);
-        draw_tet_rep(&placingTet, modelMatrixLocation);
+          glUniform3f(colorLocation, placingTet.color->r, placingTet.color->g, placingTet.color->b);
+          draw_tet_rep(&placingTet, modelMatrixLocation);
 
-        if (placingTet.actualY == oldY) { // finished placing, add to show board
-          place_tet_on_board(&placingTet, showBoard);
-          clear_completed_board_lines(showBoard, &placingTet);
-          placingTet.x = 9999;
-          placingTet.y = 9999;
-          placingTet.actualX = placingTet.x;
-          placingTet.actualY = placingTet.y;
-          update_ghost_tet();
+          if (placingTet.actualY == oldY) { // finished placing, add to show board
+            place_tet_on_board(&placingTet, showBoard);
+            clear_completed_board_lines(showBoard, &placingTet);
+            placingTet.x = 9999;
+            placingTet.y = 9999;
+            placingTet.actualX = placingTet.x;
+            placingTet.actualY = placingTet.y;
+            update_ghost_tet();
+          }
         }
       }
 
@@ -490,6 +522,18 @@ void one_iter() {
         if (ghostTet.y != activeTet.y) {
           glUniform3f(colorLocation, 0.35, 0.35, 0.35);
           //draw_tet_rep(&ghostTet, modelMatrixLocation);
+        }
+      }
+
+      {
+        for (int i = 0; i < NUM_FALLING_BLOCKS; i++) {
+          FallingBlock *fallingBlock = &fallingBlocks[i];
+          mat4 trans = mat4_translate(fallingBlock->vel.x, fallingBlock->vel.y, fallingBlock->vel.z);
+          fallingBlock->transforms = mat4_multiply(&trans, &fallingBlock->transforms);
+          fallingBlock->vel.y -= 0.02;
+          glUniform3f(colorLocation, fallingBlock->color->r, fallingBlock->color->g, fallingBlock->color->b);
+          glUniformMatrix4fv(modelMatrixLocation, 1, false, &fallingBlock->transforms.values[0]);
+          glDrawArrays(GL_TRIANGLES, 0, cubeBufElems/3);
         }
       }
 
@@ -529,6 +573,11 @@ int main() {
 
   for (int i = 0; i < 7; i++) {
     mat4_transpose_in_place((mat4*)tetronimos[i]);
+  }
+
+  for (int i = 0; i < NUM_FALLING_BLOCKS; i++) {
+    fallingBlocks[i].transforms = mat4_translate(0, -9999, 0);
+    fallingBlocks[i].color = &red;
   }
 
   reset_game();
