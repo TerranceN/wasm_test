@@ -28,6 +28,20 @@ float triangleScale = 50;
 
 mat4 cubeModelMatrix;
 
+typedef struct {
+  float r;
+  float g;
+  float b;
+} Color;
+
+Color cyan    = {0.0, 0.5, 1.0};
+Color purple  = {0.5, 0.0, 0.7};
+Color yellow  = {1.0, 1.0, 0.0};
+Color orange  = {1.0, 0.3, 0.0};
+Color blue    = {0.0, 0.0, 1.0};
+Color red     = {1.0, 0.0, 0.0};
+Color green   = {0.0, 1.0, 0.0};
+
 float i_tetronimo[] = {
   0, 1, 0, 0,
   0, 1, 0, 0,
@@ -97,9 +111,20 @@ int tetronimo_sizes[] = {
   3,
 };
 
+Color *tetronimo_colors[] = {
+  &cyan,
+  &purple,
+  &yellow,
+  &orange,
+  &blue,
+  &red,
+  &green,
+};
+
 typedef struct {
   float tetronimo[16];
   int size;
+  Color *color;
   float angle;
   float targetAngle;
   float actualX;
@@ -108,20 +133,12 @@ typedef struct {
   int y;
 } TetronimoRep;
 
-typedef struct {
-  float r;
-  float g;
-  float b;
-} Color;
-
-Color red   = {1, 0, 0};
-Color green = {0, 1, 0};
-Color blue  = {0, 0, 1};
-
 Color *board[200]; // 20x10
+Color *showBoard[200]; // 20x10
 
 TetronimoRep activeTet;
 TetronimoRep ghostTet;
+TetronimoRep placingTet;
 
 TetronimoRep tet_rep;
 TetronimoRep tet_rep2;
@@ -132,6 +149,7 @@ void load_random_tetronimo(TetronimoRep *tet) {
   int i = rand() % 7;
   memcpy(tet->tetronimo, tetronimos[i], 16*sizeof(float));
   tet->size = tetronimo_sizes[i];
+  tet->color = tetronimo_colors[i];
 }
 
 float constrainAbs(float val, float low, float high) {
@@ -170,24 +188,31 @@ void draw_tet_rep(TetronimoRep *tet, int modelMatrixLocation) {
     mat4 tetRot = mat4_rotateZ(tet->angle);
     mat4 mat = mat4_multiply(&tetRot, &translate);
     //translate = mat4_translate(size/2.0+xOffset, size/2.0+yOffset, 0.25);
-    translate = mat4_translate(size/2.0-0.5+tet->actualX, size/2.0-0.5+tet->actualY, 0.25);
+    translate = mat4_translate(size/2.0-0.5+tet->actualX, size/2.0-0.5+tet->actualY, 0);
     mat = mat4_multiply(&translate, &mat);
     glUniformMatrix4fv(modelMatrixLocation, 1, false, &mat.values[0]);
     glDrawArrays(GL_TRIANGLES, 0, cubeBufElems/3);
   }
 }
 
-void place_tet(TetronimoRep* tet) {
+void place_tet_on_board(TetronimoRep *tet, Color** board) {
   for (int i = 0; i < tet->size; i++) {
     for (int j = 0; j < tet->size; j++) {
       if (tet->tetronimo[i*4+(tet->size-1-j)]) {
         int boardIndex = (tet->y+j)*10 + (tet->x+i);
         if (boardIndex >= 0 && boardIndex < 200) {
-          board[boardIndex] = &red;
+          board[boardIndex] = tet->color;
         }
       }
     }
   }
+}
+
+void place_tet(TetronimoRep* tet, int startingY) {
+  place_tet_on_board(&placingTet, showBoard);
+  place_tet_on_board(tet, board);
+  placingTet = *tet;
+  memcpy(placingTet.tetronimo, tet->tetronimo, 16*sizeof(float));
 }
 
 bool check_board_collision(TetronimoRep *tet) {
@@ -254,11 +279,12 @@ void one_iter() {
 
       if (keyEvent->type == SDL_KEYDOWN && keyEvent->keysym.sym == SDLK_DOWN) {
         bool placed = false;
+        int startingY = activeTet.y;
         while (!placed) {
           activeTet.y -= 1;
           if (check_board_collision(&activeTet)) {
             activeTet.y += 1;
-            place_tet(&activeTet);
+            place_tet(&activeTet, startingY);
             load_random_tetronimo(&activeTet);
             activeTet.x = 5-activeTet.size/2;
             activeTet.y = 22-activeTet.size;
@@ -318,13 +344,20 @@ void one_iter() {
       {
         update_tet(&activeTet);
 
-        glUniform3f(colorLocation, 1, 1, 1);
+        glUniform3f(colorLocation, activeTet.color->r, activeTet.color->g, activeTet.color->b);
         draw_tet_rep(&activeTet, modelMatrixLocation);
       }
 
       {
+        update_tet(&placingTet);
+
+        glUniform3f(colorLocation, placingTet.color->r, placingTet.color->g, placingTet.color->b);
+        draw_tet_rep(&placingTet, modelMatrixLocation);
+      }
+
+      {
         if (ghostTet.y != activeTet.y) {
-          glUniform3f(colorLocation, 0.5, 0.5, 0.5);
+          glUniform3f(colorLocation, 0.35, 0.35, 0.35);
           draw_tet_rep(&ghostTet, modelMatrixLocation);
         }
       }
@@ -332,11 +365,24 @@ void one_iter() {
       {
         for (int i = 0; i < 20; i++) {
           for (int j = 0; j < 10; j++) {
-            if (board[i*10+j]) {
-              Color *color = board[i*10+j];
+            if (showBoard[i*10+j]) {
+              Color *color = showBoard[i*10+j];
               glUniform3f(colorLocation, color->r, color->g, color->b);
             } else {
               glUniform3f(colorLocation, 0.2, 0.2, 0.2);
+              if (j >= activeTet.x && j < activeTet.x+activeTet.size) {
+                bool isActive = false;
+                for (int k = 0; k < activeTet.size; k++) {
+                  int col = j-activeTet.x;
+                  if (activeTet.tetronimo[col*4+(activeTet.size-1-k)]) {
+                    isActive = true;
+                    break;
+                  }
+                }
+                if (isActive) {
+                  glUniform3f(colorLocation, 0.25, 0.25, 0.25);
+                }
+              }
             }
             mat4 mat = mat4_translate(j, i, 0);
             glUniformMatrix4fv(modelMatrixLocation, 1, false, &mat.values[0]);
@@ -384,8 +430,7 @@ int main() {
     board[i] = NULL;
   }
 
-  memcpy(activeTet.tetronimo, t_tetronimo, 16*sizeof(float));
-  activeTet.size = 3;
+  load_random_tetronimo(&activeTet);
   activeTet.angle = 0;
   activeTet.targetAngle = 0;
   activeTet.x = 5 - activeTet.size/2;
@@ -393,6 +438,11 @@ int main() {
   activeTet.actualX = activeTet.x;
   activeTet.actualY = activeTet.y;
 
+  placingTet = activeTet;
+  placingTet.x = 9999;
+  placingTet.y = 9999;
+  placingTet.actualX = placingTet.x;
+  placingTet.actualY = placingTet.y;
   update_ghost_tet();
 
   if (SDL_Init(SDL_INIT_VIDEO) != 0){
