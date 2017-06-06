@@ -539,27 +539,27 @@ void one_iter() {
 
     }
   }
-  glUseProgram(shader.program);
-  {
-    int modelMatrixLocation = glGetUniformLocation(shader.program, "u_modelMatrix");
-    int projectionMatrixLocation = glGetUniformLocation(shader.program, "u_projectionMatrix");
+  //glUseProgram(shader.program);
+  //{
+  //  int modelMatrixLocation = glGetUniformLocation(shader.program, "u_modelMatrix");
+  //  int projectionMatrixLocation = glGetUniformLocation(shader.program, "u_projectionMatrix");
 
-    {
-      mat4 ortho = mat4_orthographic(0, 640, 480, 0, 0, 1);
-      glUniformMatrix4fv(projectionMatrixLocation, 1, false, &ortho.values[0]);
+  //  {
+  //    mat4 ortho = mat4_orthographic(0, 640, 480, 0, 0, 1);
+  //    glUniformMatrix4fv(projectionMatrixLocation, 1, false, &ortho.values[0]);
 
-      {
-        mat4 scale = mat4_scale(triangleScale, triangleScale, 0.0);
-        mat4 translate = mat4_translate(triangleX, triangleY, 0.0);
-        mat4 mat = mat4_multiply(&translate, &scale);
-        glUniformMatrix4fv(modelMatrixLocation, 1, false, &mat.values[0]);
+  //    {
+  //      mat4 scale = mat4_scale(triangleScale, triangleScale, 0.0);
+  //      mat4 translate = mat4_translate(triangleX, triangleY, 0.0);
+  //      mat4 mat = mat4_multiply(&translate, &scale);
+  //      glUniformMatrix4fv(modelMatrixLocation, 1, false, &mat.values[0]);
 
-        glBindVertexArray(triangleVAO);
-        glDrawArrays(GL_TRIANGLES, 0, triangleBufElems/3);
-      }
+  //      glBindVertexArray(triangleVAO);
+  //      glDrawArrays(GL_TRIANGLES, 0, triangleBufElems/3);
+  //    }
 
-    }
-  }
+  //  }
+  //}
 
   SDL_GL_SwapWindow(window);
 }
