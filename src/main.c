@@ -14,8 +14,6 @@
 
 #define PI 3.14159
 
-#define copyArray(arr1, arr2) memcpy(arr1, arr2, sizeof(arr2))
-
 int triangleVAO;
 int cubeVAO;
 
@@ -30,32 +28,73 @@ float triangleScale = 50;
 
 mat4 cubeModelMatrix;
 
-float tetronimo[] = {
+float i_tetronimo[] = {
+  0, 1, 0, 0,
+  0, 1, 0, 0,
+  0, 1, 0, 0,
+  0, 1, 0, 0,
+};
+
+float t_tetronimo[] = {
+  0, 1, 0, 0,
+  1, 1, 1, 0,
+  0, 0, 0, 0,
+  0, 0, 0, 0,
+};
+
+float o_tetronimo[] = {
+  1, 1, 0, 0,
+  1, 1, 0, 0,
+  0, 0, 0, 0,
+  0, 0, 0, 0,
+};
+
+float l_tetronimo[] = {
   0, 0, 0, 0,
   1, 1, 1, 0,
   1, 0, 0, 0,
   0, 0, 0, 0,
 };
 
-float tetronimo2[] = {
-  0, 1, 0, 0,
-  0, 1, 0, 0,
-  0, 1, 0, 0,
-  0, 1, 0, 0,
-};
-
-float tetronimo3[] = {
-  0, 1, 0, 0,
+float j_tetronimo[] = {
+  0, 0, 0, 0,
   1, 1, 1, 0,
-  0, 0, 0, 0,
+  0, 0, 1, 0,
   0, 0, 0, 0,
 };
 
-float tetronimo4[] = {
+float z_tetronimo[] = {
   0, 1, 0, 0,
   1, 1, 0, 0,
   1, 0, 0, 0,
   0, 0, 0, 0,
+};
+
+float s_tetronimo[] = {
+  1, 0, 0, 0,
+  1, 1, 0, 0,
+  0, 1, 0, 0,
+  0, 0, 0, 0,
+};
+
+float* tetronimos[] = {
+  i_tetronimo,
+  t_tetronimo,
+  o_tetronimo,
+  l_tetronimo,
+  j_tetronimo,
+  z_tetronimo,
+  s_tetronimo,
+};
+
+int tetronimo_sizes[] = {
+  4,
+  3,
+  2,
+  3,
+  3,
+  3,
+  3,
 };
 
 typedef struct {
@@ -63,30 +102,58 @@ typedef struct {
   int size;
   float angle;
   float targetAngle;
+  float actualX;
+  float actualY;
   int x;
   int y;
 } TetronimoRep;
 
+typedef struct {
+  float r;
+  float g;
+  float b;
+} Color;
+
+Color red   = {1, 0, 0};
+Color green = {0, 1, 0};
+Color blue  = {0, 0, 1};
+
+Color *board[200]; // 20x10
+
 TetronimoRep activeTet;
+TetronimoRep ghostTet;
 
 TetronimoRep tet_rep;
 TetronimoRep tet_rep2;
 TetronimoRep tet_rep3;
 TetronimoRep tet_rep4;
 
-float constrain(float val, float low, float high) {
-  val = fmaxf(val, low);
-  val = fminf(val, high);
-  return val;
+void load_random_tetronimo(TetronimoRep *tet) {
+  int i = rand() % 7;
+  memcpy(tet->tetronimo, tetronimos[i], 16*sizeof(float));
+  tet->size = tetronimo_sizes[i];
 }
 
-void update_tet_rotation(TetronimoRep *tet) {
+float constrainAbs(float val, float low, float high) {
+  float inputVal = val;
+  int sign = val < 0 ? -1 : 1;
+  val = fmaxf(fabs(val), low);
+  val = fminf(val, fabs(high));
+  return sign * val;
+}
+
+void update_tet(TetronimoRep *tet) {
   float diffAngle = tet->targetAngle - tet->angle;
-  tet->angle += constrain(diffAngle/4, 0.05, diffAngle);
+  tet->angle += constrainAbs(diffAngle/3, 0.05, diffAngle);
+
+  float diffX = tet->x - tet->actualX;
+  tet->actualX += constrainAbs(diffX/3, 0.05, diffX);
+
+  float diffY = tet->y - tet->actualY;
+  tet->actualY += constrainAbs(diffY/3, 0.05, diffY);
 }
 
 void rotate_tet_rep(TetronimoRep *tet) {
-  tet->angle -= PI/2;
   mat4_transposen_in_place((mat4*)(&tet->tetronimo), tet->size);
   mat4_flip_vertn_in_place((mat4*)(&tet->tetronimo), tet->size);
 }
@@ -103,10 +170,59 @@ void draw_tet_rep(TetronimoRep *tet, int modelMatrixLocation) {
     mat4 tetRot = mat4_rotateZ(tet->angle);
     mat4 mat = mat4_multiply(&tetRot, &translate);
     //translate = mat4_translate(size/2.0+xOffset, size/2.0+yOffset, 0.25);
-    translate = mat4_translate(size/2.0-0.5+tet->x, size/2.0-0.5+tet->y, 0.25);
+    translate = mat4_translate(size/2.0-0.5+tet->actualX, size/2.0-0.5+tet->actualY, 0.25);
     mat = mat4_multiply(&translate, &mat);
     glUniformMatrix4fv(modelMatrixLocation, 1, false, &mat.values[0]);
     glDrawArrays(GL_TRIANGLES, 0, cubeBufElems/3);
+  }
+}
+
+void place_tet(TetronimoRep* tet) {
+  for (int i = 0; i < tet->size; i++) {
+    for (int j = 0; j < tet->size; j++) {
+      if (tet->tetronimo[i*4+(tet->size-1-j)]) {
+        int boardIndex = (tet->y+j)*10 + (tet->x+i);
+        if (boardIndex >= 0 && boardIndex < 200) {
+          board[boardIndex] = &red;
+        }
+      }
+    }
+  }
+}
+
+bool check_board_collision(TetronimoRep *tet) {
+  for (int i = 0; i < 4; i++) {
+    for (int j = 0; j < tet->size; j++) {
+      int tetIndex = i*4+(tet->size-1-j);
+      if (tet->tetronimo[tetIndex] &&
+          (tet->x+i < 0 || tet->x+i >= 10 || tet->y+j < 0)) {
+        return true;
+      }
+      int boardIndex = (tet->y+j)*10 + (tet->x+i);
+      if (boardIndex >= 0 && boardIndex < 200) {
+        if (board[boardIndex]) {
+          if (tet->tetronimo[tetIndex]) {
+            return true;
+          }
+        }
+      }
+    }
+  }
+  return false;
+}
+
+void update_ghost_tet() {
+  ghostTet = activeTet;
+  bool placed = false;
+  while (!placed) {
+    ghostTet.y -= 1;
+    if (check_board_collision(&ghostTet)) {
+      ghostTet.y += 1;
+      ghostTet.actualX = ghostTet.x;
+      ghostTet.actualY = ghostTet.y;
+      ghostTet.angle = ghostTet.targetAngle;
+      placed = true;
+    }
   }
 }
 
@@ -126,38 +242,48 @@ void one_iter() {
       }
 
       if (keyEvent->type == SDL_KEYDOWN && keyEvent->keysym.sym == SDLK_UP) {
-        rotate_tet_rep(&tet_rep);
-        rotate_tet_rep(&tet_rep2);
-        rotate_tet_rep(&tet_rep3);
-        rotate_tet_rep(&tet_rep4);
         rotate_tet_rep(&activeTet);
+        if (check_board_collision(&activeTet)) {
+          rotate_tet_rep(&activeTet);
+          rotate_tet_rep(&activeTet);
+          rotate_tet_rep(&activeTet);
+        } else {
+          activeTet.angle -= PI/2;
+        }
       }
 
       if (keyEvent->type == SDL_KEYDOWN && keyEvent->keysym.sym == SDLK_DOWN) {
-        activeTet.y -= 1;
+        bool placed = false;
+        while (!placed) {
+          activeTet.y -= 1;
+          if (check_board_collision(&activeTet)) {
+            activeTet.y += 1;
+            place_tet(&activeTet);
+            load_random_tetronimo(&activeTet);
+            activeTet.x = 5-activeTet.size/2;
+            activeTet.y = 22-activeTet.size;
+            activeTet.actualX = activeTet.x;
+            activeTet.actualY = activeTet.y;
+            placed = true;
+          }
+        }
       }
 
       if (keyEvent->type == SDL_KEYDOWN && keyEvent->keysym.sym == SDLK_LEFT) {
         activeTet.x -= 1;
+        if (check_board_collision(&activeTet)) {
+          activeTet.x += 1;
+        }
       }
 
       if (keyEvent->type == SDL_KEYDOWN && keyEvent->keysym.sym == SDLK_RIGHT) {
         activeTet.x += 1;
+        if (check_board_collision(&activeTet)) {
+          activeTet.x -= 1;
+        }
       }
 
-      if (keyEvent->type == SDL_KEYDOWN && keyEvent->keysym.sym == SDLK_r) {
-        mat4_transposen_in_place((mat4*)tetronimo, 3);
-        mat4_flip_vertn_in_place((mat4*)tetronimo, 3);
-
-        mat4_transposen_in_place((mat4*)tetronimo2, 4);
-        mat4_flip_vertn_in_place((mat4*)tetronimo2, 4);
-
-        mat4_transposen_in_place((mat4*)tetronimo3, 3);
-        mat4_flip_vertn_in_place((mat4*)tetronimo3, 3);
-
-        mat4_transposen_in_place((mat4*)tetronimo4, 3);
-        mat4_flip_vertn_in_place((mat4*)tetronimo4, 3);
-      }
+      update_ghost_tet();
     }
 
     if (event.type == SDL_MOUSEMOTION) {
@@ -178,7 +304,7 @@ void one_iter() {
     int colorLocation = glGetUniformLocation(flatShader.program, "u_color");
 
     {
-      mat4 mat = mat4_translate(0, -10, -17);
+      mat4 mat = mat4_translate(-5, -10, -17);
       glUniformMatrix4fv(viewMatrixLocation, 1, false, &mat.values[0]);
     }
     {
@@ -190,65 +316,29 @@ void one_iter() {
       glBindVertexArray(cubeVAO);
 
       {
-        mat4 rot;
-        //rot = mat4_rotateY(0.03);
-        //cubeModelMatrix = mat4_multiply(&cubeModelMatrix, &rot);
-        //rot = mat4_rotateX(0.01);
-        //cubeModelMatrix = mat4_multiply(&cubeModelMatrix, &rot);
-        //rot = mat4_rotateZ(0.02);
-        //cubeModelMatrix = mat4_multiply(&cubeModelMatrix, &rot);
-        for (int j = 0; j < 4; j++) {
-          int xOffset = 3;
-          int yOffset = 6;
-          float r = 1.0;
-          float g = 0.0;
-          float b = 0.0;
-          TetronimoRep* tet = &tet_rep;
-          if (j % 2 == 0) {
-            xOffset = -xOffset;
-          }
-          if (j / 2 == 0) {
-            yOffset = 0;
-          }
-          if (j == 1) {
-            tet = &tet_rep2;
-            r = 0;
-            g = 1;
-          }
-          if (j == 2) {
-            tet = &tet_rep3;
-            r = 0;
-            b = 1;
-          }
-          if (j == 3) {
-            tet = &tet_rep4;
-            r = 0;
-            g = 1;
-            b = 1;
-          }
-          update_tet_rotation(tet);
-
-          glUniform3f(colorLocation, r, g, b);
-
-          tet->x = xOffset-2;
-          tet->y = yOffset;
-
-          draw_tet_rep(tet, modelMatrixLocation);
-        }
-      }
-
-      {
-        update_tet_rotation(&activeTet);
+        update_tet(&activeTet);
 
         glUniform3f(colorLocation, 1, 1, 1);
         draw_tet_rep(&activeTet, modelMatrixLocation);
       }
 
       {
+        if (ghostTet.y != activeTet.y) {
+          glUniform3f(colorLocation, 0.5, 0.5, 0.5);
+          draw_tet_rep(&ghostTet, modelMatrixLocation);
+        }
+      }
+
+      {
         for (int i = 0; i < 20; i++) {
           for (int j = 0; j < 10; j++) {
-            glUniform3f(colorLocation, 0.8, 0.8, 0.8);
-            mat4 mat = mat4_translate(j - 5, i, 0);
+            if (board[i*10+j]) {
+              Color *color = board[i*10+j];
+              glUniform3f(colorLocation, color->r, color->g, color->b);
+            } else {
+              glUniform3f(colorLocation, 0.2, 0.2, 0.2);
+            }
+            mat4 mat = mat4_translate(j, i, 0);
             glUniformMatrix4fv(modelMatrixLocation, 1, false, &mat.values[0]);
             glDrawArrays(GL_TRIANGLES, 0, cubeBufElems/3);
           }
@@ -286,38 +376,24 @@ void emscripten_set_main_loop(void*, int, int);
 #endif
 
 int main() {
-  mat4_transpose_in_place((mat4*)tetronimo);
-  mat4_transpose_in_place((mat4*)tetronimo2);
-  mat4_transpose_in_place((mat4*)tetronimo3);
-  mat4_transpose_in_place((mat4*)tetronimo4);
+  for (int i = 0; i < 7; i++) {
+    mat4_transpose_in_place((mat4*)tetronimos[i]);
+  }
 
-  copyArray(activeTet.tetronimo, tetronimo);
+  for (int i = 0; i < 200; i++) {
+    board[i] = NULL;
+  }
+
+  memcpy(activeTet.tetronimo, t_tetronimo, 16*sizeof(float));
   activeTet.size = 3;
   activeTet.angle = 0;
   activeTet.targetAngle = 0;
-  activeTet.x = 0 - activeTet.size/2;
+  activeTet.x = 5 - activeTet.size/2;
   activeTet.y = 22 - activeTet.size;
+  activeTet.actualX = activeTet.x;
+  activeTet.actualY = activeTet.y;
 
-  copyArray(tet_rep.tetronimo, tetronimo);
-  tet_rep.size = 3;
-  tet_rep.angle = 0;
-  tet_rep.targetAngle = 0;
-
-  copyArray(tet_rep2.tetronimo, tetronimo2);
-  tet_rep2.size = 4;
-  tet_rep2.angle = 0;
-  tet_rep2.targetAngle = 0;
-
-  copyArray(tet_rep3.tetronimo, tetronimo3);
-  tet_rep3.size = 3;
-  tet_rep3.angle = 0;
-  tet_rep3.targetAngle = 0;
-
-  copyArray(tet_rep4.tetronimo, tetronimo4);
-  tet_rep4.size = 3;
-  tet_rep4.angle = 0;
-  tet_rep4.targetAngle = 0;
-
+  update_ghost_tet();
 
   if (SDL_Init(SDL_INIT_VIDEO) != 0){
     return 1;
